@@ -3,6 +3,12 @@
  * https://github.com/rajprem4214/indian-railways-mcp
  */
 
+import {
+  ErailFareByClass,
+  isErailFareSection,
+  parseErailFareSection,
+} from './erailFares';
+
 export interface ErailTrainBase {
   trainNumber: string;
   trainName: string;
@@ -18,6 +24,12 @@ export interface ErailTrainBase {
   arrivalTime: string;
   travelDuration: string;
   operatingDays: string;
+  /** INR General quota fares from erail (per class) */
+  fareByClass?: ErailFareByClass;
+  classesAvailable?: string[];
+  trainType?: string;
+  /** Parsed availability lines from erail (e.g. "2A: 12 / 7") */
+  erailSeatAvailability?: string[];
 }
 
 export interface ErailBetweenStationsResult {
@@ -51,28 +63,46 @@ export function parseBetweenStationsData(rawData: string): ErailBetweenStationsR
 
     sections = sections.filter((el) => el !== '');
     for (let i = 0; i < sections.length; i++) {
-      let trainData = sections[i].split('~^');
-      if (trainData.length === 2) {
-        trainData = trainData[1].split('~').filter((el) => el !== '');
-        trainInfo = {
-          trainNumber: trainData[0],
-          trainName: trainData[1],
-          sourceStationName: trainData[2],
-          sourceStationCode: trainData[3],
-          destinationStationName: trainData[4],
-          destinationStationCode: trainData[5],
-          fromStationName: trainData[6],
-          fromStationCode: trainData[7],
-          toStationName: trainData[8],
-          toStationCode: trainData[9],
-          departureTime: trainData[10],
-          arrivalTime: trainData[11],
-          travelDuration: trainData[12],
-          operatingDays: trainData[13],
-        };
-        trainList.push({ trainBase: trainInfo as ErailTrainBase });
-        trainInfo = {};
+      const section = sections[i];
+      if (!section.includes('~^')) continue;
+
+      const trainData = section.split('~^');
+      if (trainData.length < 2) continue;
+
+      const fields = trainData[1].split('~').filter((el) => el !== '');
+      trainInfo = {
+        trainNumber: fields[0],
+        trainName: fields[1],
+        sourceStationName: fields[2],
+        sourceStationCode: fields[3],
+        destinationStationName: fields[4],
+        destinationStationCode: fields[5],
+        fromStationName: fields[6],
+        fromStationCode: fields[7],
+        toStationName: fields[8],
+        toStationCode: fields[9],
+        departureTime: fields[10],
+        arrivalTime: fields[11],
+        travelDuration: fields[12],
+        operatingDays: fields[13],
+      };
+
+      const next = sections[i + 1];
+      if (next && isErailFareSection(next)) {
+        const extras = parseErailFareSection(next);
+        trainInfo.fareByClass = extras.fareByClass;
+        trainInfo.classesAvailable = Object.keys(extras.fareByClass).filter(
+          (k) => (extras.fareByClass[k as keyof typeof extras.fareByClass] ?? 0) > 0
+        );
+        if (extras.trainType) trainInfo.trainType = extras.trainType;
+        if (extras.seatAvailability.length) {
+          trainInfo.erailSeatAvailability = extras.seatAvailability;
+        }
+        i += 1;
       }
+
+      trainList.push({ trainBase: trainInfo as ErailTrainBase });
+      trainInfo = {};
     }
 
     return { success: true, time_stamp: Date.now(), data: trainList };

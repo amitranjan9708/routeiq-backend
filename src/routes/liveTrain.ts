@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { mcpServer } from '../mcp/LocalMCPServer';
 import { RouteEngine } from '../engine/RouteEngine';
-import { getGeoNode } from '../engine/GeoDatabase';
+import { getGeoNodeById } from '../engine/geoCoords';
 import { RouteSegment } from '../models/types';
 import { AIRPORT_CONNECTION_BUFFER_MINS } from '../utils/trainConnection';
 
@@ -11,8 +11,8 @@ liveTrainRouter.post('/', async (req, res) => {
   const { originId, destId, flightDepartureTime, cabDuration, date } = req.body;
 
   try {
-    const originNode = getGeoNode(originId);
-    const destNode = getGeoNode(destId);
+    const originNode = getGeoNodeById(originId);
+    const destNode = getGeoNodeById(destId);
 
     if (!originNode || !destNode) {
       return res.status(400).json({ error: 'Invalid origin or destination ID' });

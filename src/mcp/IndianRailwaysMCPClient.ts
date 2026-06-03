@@ -36,6 +36,39 @@ function resolveMcpServerEntry(): string | null {
   return null;
 }
 
+function trainNumberKey(num?: string): string {
+  return String(num || '').replace(/\D/g, '').trim();
+}
+
+/** Attach fareByClass / availability from a fresh erail parse (MCP schedule-only rows). */
+async function mergeErailFaresIntoTrains(
+  trains: ErailTrainBase[],
+  fromCode: string,
+  toCode: string,
+  isoDate?: string
+): Promise<ErailTrainBase[]> {
+  const direct = await fetchTrainsBetweenStations(fromCode, toCode, isoDate);
+  if (!direct.success || !Array.isArray(direct.data)) return trains;
+
+  const byNumber = new Map<string, ErailTrainBase>();
+  for (const { trainBase } of direct.data) {
+    const key = trainNumberKey(trainBase.trainNumber);
+    if (key) byNumber.set(key, trainBase);
+  }
+
+  return trains.map((t) => {
+    const rich = byNumber.get(trainNumberKey(t.trainNumber));
+    if (!rich?.fareByClass) return t;
+    return {
+      ...t,
+      fareByClass: rich.fareByClass,
+      classesAvailable: rich.classesAvailable,
+      trainType: rich.trainType ?? t.trainType,
+      erailSeatAvailability: rich.erailSeatAvailability,
+    };
+  });
+}
+
 function parseMcpToolJson(text: string): ErailBetweenStationsResult | null {
   const start = text.indexOf('{');
   if (start === -1) return null;
@@ -88,11 +121,21 @@ export class IndianRailwaysMCPClient {
     to: string,
     travelDate?: string
   ): Promise<ErailTrainBase[]> {
-    await this.connect();
-
     const fromCode = from.toUpperCase();
     const toCode = to.toUpperCase();
     const isoDate = travelDate?.trim() || undefined;
+
+    // Always use RouteIQ erail parser (includes per-class fares). MCP vendor JSON omits fares.
+    const direct = await fetchTrainsBetweenStations(fromCode, toCode, isoDate);
+    if (direct.success && Array.isArray(direct.data) && direct.data.length > 0) {
+      const trains = direct.data.map((row) => row.trainBase).filter(Boolean);
+      if (trains.some((t) => t.fareByClass && Object.keys(t.fareByClass).length > 0)) {
+        return trains;
+      }
+      if (trains.length > 0) return trains;
+    }
+
+    await this.connect();
 
     if (isoDate && this.useSubprocess && this.client) {
       try {
@@ -109,7 +152,9 @@ export class IndianRailwaysMCPClient {
             const trains = rows
               .map((row) => row.trainBase || row.train_base)
               .filter(Boolean) as ErailTrainBase[];
-            if (trains.length > 0) return trains;
+            if (trains.length > 0) {
+              return mergeErailFaresIntoTrains(trains, fromCode, toCode, isoDate);
+            }
           }
         }
       } catch (e: unknown) {
@@ -131,21 +176,20 @@ export class IndianRailwaysMCPClient {
           if (parsed?.success && Array.isArray(parsed.data)) {
             let rows = parsed.data;
             if (isoDate) rows = filterTrainRowsByDate(rows, isoDate);
-            return rows.map((row) => row.trainBase).filter(Boolean);
+            const trains = rows.map((row) => row.trainBase).filter(Boolean);
+            if (trains.length > 0) {
+              return mergeErailFaresIntoTrains(trains, fromCode, toCode, isoDate);
+            }
           }
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        console.warn('[Indian Railways MCP] Tool call failed, falling back to erail:', msg);
+        console.warn('[Indian Railways MCP] Tool call failed:', msg);
       }
     }
 
-    const direct = await fetchTrainsBetweenStations(fromCode, toCode, isoDate);
-    if (!direct.success || !Array.isArray(direct.data)) {
-      console.warn('[Indian Railways] No trains:', direct.data ?? direct.error);
-      return [];
-    }
-    return direct.data.map((row) => row.trainBase).filter(Boolean);
+    console.warn('[Indian Railways] No trains:', direct.data ?? direct.error);
+    return [];
   }
 
   async close(): Promise<void> {

@@ -145,7 +145,6 @@ export class RouteEngine {
       hubStation.lat,
       hubStation.lng
     );
-    const cost = Math.round(300 + distance * 1.5);
     const duration = Math.round((distance / 60) * 60);
 
     return {
@@ -155,10 +154,11 @@ export class RouteEngine {
       originName: originStation.name,
       destinationId: hubStation.id,
       destinationName: hubStation.name,
-      cost,
+      cost: 0,
       duration,
       risk: 0.2,
-      provider: 'Indian Railways',
+      provider: 'Indian Railways (fare in details)',
+      fareIsLive: false,
       trainName: `${originStation.name} → ${hubStation.name}`,
       trainNumber: '',
       seatAvailability: [],

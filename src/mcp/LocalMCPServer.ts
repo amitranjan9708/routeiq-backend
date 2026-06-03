@@ -36,7 +36,6 @@ export class LocalMCPServer {
       const { originLat, originLng, destLat, destLng, originId, destId, live, date } = args;
       const distance = Haversine.getDistance(originLat, originLng, destLat, destLng);
 
-      const cost = Math.round(300 + distance * 1.5);
       const duration = Math.round((distance / 60) * 60);
 
       const originNode = GEO_DB.find((n) => n.id === originId);
@@ -59,7 +58,7 @@ export class LocalMCPServer {
         const base = {
           originId,
           destinationId: destId,
-          cost,
+          cost: 0,
           duration,
           risk: 0.2,
           provider: TRAIN_PROVIDER,
@@ -80,10 +79,11 @@ export class LocalMCPServer {
           originName: originNode?.name || 'Station',
           destinationId: destId,
           destinationName: destNode?.name || 'Station',
-          cost,
+          cost: 0,
           duration,
           risk: 0.2,
           provider: TRAIN_PROVIDER,
+          fareIsLive: false,
           trainName: `${originNode?.name || 'Station'} to ${destNode?.name || 'Station'} Express`,
           trainNumber: '',
           seatAvailability: [],

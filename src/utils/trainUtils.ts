@@ -103,6 +103,15 @@ export function pickSegmentFare(
   fareByClass?: Record<string, number>,
   classesAvailable?: string[]
 ): number | undefined {
+  const picked = pickSegmentFareClass(fareByClass, classesAvailable);
+  return picked?.fare;
+}
+
+/** Preferred display class + General quota fare from erail. */
+export function pickSegmentFareClass(
+  fareByClass?: Record<string, number>,
+  classesAvailable?: string[]
+): { fare: number; fareClass: string } | undefined {
   if (!fareByClass) return undefined;
   const preferred = ['SL', '3A', '2A', '2S', 'CC', '3E', '1A', 'EC', 'FC'];
   const candidates = classesAvailable?.length
@@ -110,9 +119,12 @@ export function pickSegmentFare(
     : preferred;
   for (const cls of candidates) {
     const fare = fareByClass[cls];
-    if (typeof fare === 'number' && fare > 0) return fare;
+    if (typeof fare === 'number' && fare > 0) return { fare, fareClass: cls };
   }
-  return Object.values(fareByClass).find((v) => typeof v === 'number' && v > 0);
+  for (const [cls, fare] of Object.entries(fareByClass)) {
+    if (typeof fare === 'number' && fare > 0) return { fare, fareClass: cls };
+  }
+  return undefined;
 }
 
 export function legSignature(seg: Pick<RouteSegment, 'departureTime' | 'arrivalTime' | 'cost' | 'duration'>): string {
@@ -174,6 +186,10 @@ export function mapErailTrain(
     arrivalTime?: string;
     travelDuration?: string;
     operatingDays?: string;
+    fareByClass?: Record<string, number>;
+    classesAvailable?: string[];
+    trainType?: string;
+    erailSeatAvailability?: string[];
   },
   base: Pick<RouteSegment, 'originId' | 'destinationId' | 'cost' | 'duration' | 'risk' | 'provider'>,
   segmentLabels?: { originName?: string; destinationName?: string }
@@ -189,6 +205,13 @@ export function mapErailTrain(
   const originStationCode = String(trainBase.fromStationCode || '').trim().toUpperCase() || undefined;
   const destinationStationCode = String(trainBase.toStationCode || '').trim().toUpperCase() || undefined;
 
+  const picked = pickSegmentFareClass(trainBase.fareByClass, trainBase.classesAvailable);
+  const seatAvailability = sortSeatLines(
+    trainBase.erailSeatAvailability?.length
+      ? trainBase.erailSeatAvailability
+      : normalizeSeatAvailability(undefined)
+  );
+
   return {
     id: `train_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     type: 'TRAIN',
@@ -198,16 +221,20 @@ export function mapErailTrain(
     destinationName: segmentLabels?.destinationName || trainBase.toStationName || 'Station',
     originStationCode,
     destinationStationCode,
-    cost: base.cost,
+    cost: picked?.fare ?? 0,
     duration: legDuration,
     risk: base.risk,
     provider: base.provider,
     trainName: trainBase.trainName || 'Express',
     trainNumber: String(trainBase.trainNumber || '').trim(),
+    trainType: trainBase.trainType,
     fullRouteOrigin: trainBase.sourceStationName,
     fullRouteDestination: trainBase.destinationStationName,
     runsOn: formatOperatingDays(trainBase.operatingDays),
-    seatAvailability: [],
+    fareByClass: trainBase.fareByClass,
+    fareClass: picked?.fareClass,
+    fareIsLive: !!picked,
+    seatAvailability,
     departureTime,
     arrivalTime,
   };
@@ -222,7 +249,7 @@ export function mapApifyTrain(
   const classesAvailable = Array.isArray(t.classes_available)
     ? (t.classes_available as string[])
     : undefined;
-  const segmentFare = pickSegmentFare(fareByClass, classesAvailable);
+  const picked = pickSegmentFareClass(fareByClass, classesAvailable);
 
   const departureTime = String(t.departure_time || t.departureTime || '');
   const arrivalTime = String(t.arrival_time || t.arrivalTime || '');
@@ -241,7 +268,10 @@ export function mapApifyTrain(
     originName: segmentLabels?.originName || String(t.from_station || 'Station'),
     destinationId: base.destinationId,
     destinationName: segmentLabels?.destinationName || String(t.to_station || 'Station'),
-    cost: segmentFare ?? base.cost,
+    cost: picked?.fare ?? base.cost,
+    fareByClass,
+    fareClass: picked?.fareClass,
+    fareIsLive: !!picked,
     duration: legDuration,
     risk: base.risk,
     provider: base.provider,

@@ -46,6 +46,12 @@ export interface RouteSegment {
   /** Straight-line km (cab legs); road distance is in distanceKm */
   straightLineKm?: number;
   avgSpeedKmph?: number;
+  /** INR General quota per class from erail.in */
+  fareByClass?: Record<string, number>;
+  /** Class used for segment `cost` (e.g. SL, 3A) */
+  fareClass?: string;
+  /** True when `cost` came from erail/MCP, not a distance estimate */
+  fareIsLive?: boolean;
   seatAvailability?: string[];
   alternativeTrains?: RouteSegment[];
   /** Top train choices (recommended first) with full segment fields */
