@@ -24,6 +24,7 @@ Recommended on Render:
 FLIGHT_PROVIDER=google
 SKYSCANNER_DISABLED=1
 GOOGLE_FLIGHTS_VENDOR_DIR=vendor/flights-mcp-server
+GOOGLE_FLIGHTS_CURRENCY=INR
 INDIAN_RAILWAYS_MCP_SERVER=vendor/indian-railways-mcp/build/index.js
 ```
 

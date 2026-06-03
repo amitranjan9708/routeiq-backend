@@ -2,7 +2,9 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-from fast_flights import FlightData, Passengers, Result, get_flights, search_airport
+from fast_flights import FlightData, Passengers, Result, search_airport
+
+from google_flights_fetch import fetch_flights
 from dataclasses import asdict
 
 from datetime import datetime
@@ -136,12 +138,11 @@ async def get_general_flights_info(origin: str, destination: str, departure_date
         
         passengers_input = Passengers(adults=adults, children=children, infants_in_seat=infants_in_seat, infants_on_lap=infants_on_lap)
 
-        result: Result = get_flights(
+        result: Result = fetch_flights(
             flight_data=flight_data_input,
             trip=trip_type,
             seat=seat,
             passengers=passengers_input,
-            fetch_mode="fallback"
         )
         
         result = asdict(result)
@@ -224,12 +225,11 @@ async def get_cheapest_flights(origin: str, destination: str, departure_date: st
         flight_data_input = [FlightData(date=departure_date, from_airport=origin, to_airport=destination)]
         passengers_input = Passengers(adults=adults, children=children, infants_in_seat=infants_in_seat, infants_on_lap=infants_on_lap)
 
-        result: Result = get_flights(
+        result: Result = fetch_flights(
             flight_data=flight_data_input,
             trip=trip_type,
             seat=seat,
             passengers=passengers_input,
-            fetch_mode="fallback"
         )
         
         result = asdict(result)
@@ -322,12 +322,11 @@ async def get_best_flights(origin: str, destination: str, departure_date: str,
 
         passengers_input = Passengers(adults=adults, children=children, infants_in_seat=infants_in_seat, infants_on_lap=infants_on_lap)
 
-        result: Result = get_flights(
+        result: Result = fetch_flights(
             flight_data=flight_data_input,
             trip=trip_type,
             seat=seat,
             passengers=passengers_input,
-            fetch_mode="fallback"
         )
         
         result = asdict(result)
@@ -434,12 +433,11 @@ async def get_time_filtered_flights(state: str, target_time_str: str, origin: st
 
         passengers_input = Passengers(adults=adults, children=children, infants_in_seat=infants_in_seat, infants_on_lap=infants_on_lap)
 
-        result: Result = get_flights(
+        result: Result = fetch_flights(
             flight_data=flight_data_input,
             trip=trip_type,
             seat=seat,
             passengers=passengers_input,
-            fetch_mode="fallback"
         )
         
         result = asdict(result)

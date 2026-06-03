@@ -20,6 +20,8 @@ services:
         value: "1"
       - key: GOOGLE_FLIGHTS_VENDOR_DIR
         value: vendor/flights-mcp-server
+      - key: GOOGLE_FLIGHTS_CURRENCY
+        value: INR
       - key: INDIAN_RAILWAYS_MCP_SERVER
         value: vendor/indian-railways-mcp/build/index.js
       - key: GEMINI_API_KEY

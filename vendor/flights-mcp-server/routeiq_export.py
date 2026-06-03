@@ -3,7 +3,9 @@ import json
 import sys
 from dataclasses import asdict
 
-from fast_flights import FlightData, Passengers, get_flights
+from fast_flights import FlightData, Passengers
+
+from google_flights_fetch import fetch_flights
 
 TOOL_ALIASES = {
     "cheapest": "get_cheapest_flights",
@@ -52,12 +54,11 @@ def main() -> None:
     tool = TOOL_ALIASES.get(raw_tool, raw_tool)
 
     try:
-        result = get_flights(
+        result = fetch_flights(
             flight_data=[FlightData(date=departure_date, from_airport=origin, to_airport=destination)],
             trip="one-way",
             seat="economy",
             passengers=Passengers(adults=1),
-            fetch_mode="fallback",
         )
         data = asdict(result)
         all_flights = data.get("flights") or []

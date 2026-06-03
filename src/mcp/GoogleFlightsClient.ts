@@ -18,11 +18,36 @@ import { vendorPath } from '../utils/vendorRoot';
 
 const DEFAULT_VENDOR = vendorPath('flights-mcp-server');
 
+const DEFAULT_FX_TO_INR: Record<string, number> = {
+  INR: 1,
+  USD: 84,
+  EUR: 90,
+  GBP: 105,
+};
+
+function detectPriceCurrency(raw: string): keyof typeof DEFAULT_FX_TO_INR {
+  if (/₹|Rs\.?\b/i.test(raw)) return 'INR';
+  if (/\$|USD/i.test(raw)) return 'USD';
+  if (/€|EUR/i.test(raw)) return 'EUR';
+  if (/£|GBP/i.test(raw)) return 'GBP';
+  return 'INR';
+}
+
+function fxToInr(currency: string): number {
+  const envKey = `${currency.toUpperCase()}_TO_INR`;
+  const fromEnv = parseFloat(process.env[envKey] || '');
+  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
+  return DEFAULT_FX_TO_INR[currency] ?? 1;
+}
+
+/** Parse Google Flights price strings and normalize to INR (Render US IPs may return USD). */
 function parseInrPrice(raw: string | undefined): number {
   if (!raw) return 0;
-  const n = raw.replace(/[^\d.]/g, '');
-  const v = parseFloat(n);
-  return Number.isFinite(v) ? Math.round(v) : 0;
+  const trimmed = raw.trim();
+  const currency = detectPriceCurrency(trimmed);
+  const n = parseFloat(trimmed.replace(/[^\d.]/g, ''));
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * fxToInr(currency));
 }
 
 function parseClockTime(text: string | undefined): string | undefined {
