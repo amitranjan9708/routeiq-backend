@@ -1,0 +1,4 @@
+# RouteIQ Skyscanner export only (no fastmcp — use Python 3.10+)
+curl_cffi>=0.6.0
+typeguard>=4.0.0
+orjson>=3.9.0

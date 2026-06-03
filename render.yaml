@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: routeiq-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm run render:build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FLIGHT_PROVIDER
+        value: google
+      - key: SKYSCANNER_DISABLED
+        value: "1"
+      - key: GOOGLE_FLIGHTS_VENDOR_DIR
+        value: vendor/flights-mcp-server
+      - key: INDIAN_RAILWAYS_MCP_SERVER
+        value: vendor/indian-railways-mcp/build/index.js
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: APIFY_TOKEN
+        sync: false

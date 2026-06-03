@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "render:build": "bash scripts/render-build.sh",
+    "flights:setup": "node scripts/setup-flights-mcp.js",
+    "skyscanner:setup": "node scripts/setup-skyscanner-mcp.js",
+    "flights:test": "ts-node src/scripts/testGoogleFlights.ts",
+    "railways:setup": "node scripts/setup-railways-mcp.js",
+    "railways:test": "ts-node src/scripts/testRailwaysMcp.ts",
+    "railways:start": "node ../vendor/indian-railways-mcp/build/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.16.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "eventsource": "^4.1.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/eventsource": "^1.1.15",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+scratch_kiwi*.ts
+
+# Python / MCP vendors
+vendor/**/.venv/
+vendor/**/__pycache__/
+vendor/**/.pytest_cache/
+vendor/**/node_modules/
+vendor/**/.git/
+vendor/**/apks/
+vendor/**/build/
