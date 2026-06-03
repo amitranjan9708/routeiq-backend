@@ -84,6 +84,38 @@ export class GoogleFlightsClient {
     );
   }
 
+  /** Prefer vendor .venv (Render build) or GOOGLE_FLIGHTS_PYTHON; else local `uv run`. */
+  private exportSpawn(
+    origin: string,
+    destination: string,
+    isoDate: string,
+    tool: GoogleFlightsMcpTool
+  ): { command: string; args: string[] } {
+    const tail = [
+      origin.toUpperCase(),
+      destination.toUpperCase(),
+      isoDate,
+      tool,
+    ];
+    const script = this.scriptPath();
+    const fromEnv = process.env.GOOGLE_FLIGHTS_PYTHON;
+    if (fromEnv && fs.existsSync(fromEnv)) {
+      return { command: fromEnv, args: [script, ...tail] };
+    }
+    const venvPy = path.join(this.vendorDir, '.venv', 'bin', 'python');
+    const venvPyWin = path.join(this.vendorDir, '.venv', 'Scripts', 'python.exe');
+    if (fs.existsSync(venvPy)) {
+      return { command: venvPy, args: [script, ...tail] };
+    }
+    if (fs.existsSync(venvPyWin)) {
+      return { command: venvPyWin, args: [script, ...tail] };
+    }
+    return {
+      command: this.uvCommand,
+      args: ['run', 'python', 'routeiq_export.py', ...tail],
+    };
+  }
+
   private runExport(
     origin: string,
     destination: string,
@@ -91,16 +123,8 @@ export class GoogleFlightsClient {
     tool: GoogleFlightsMcpTool
   ): Promise<GoogleFlightsExport> {
     return new Promise((resolve, reject) => {
-      const args = [
-        'run',
-        'python',
-        'routeiq_export.py',
-        origin.toUpperCase(),
-        destination.toUpperCase(),
-        isoDate,
-        tool,
-      ];
-      const child = spawn(this.uvCommand, args, {
+      const { command, args } = this.exportSpawn(origin, destination, isoDate, tool);
+      const child = spawn(command, args, {
         cwd: this.vendorDir,
         env: { ...process.env },
       });

@@ -4,12 +4,16 @@ services:
     runtime: node
     rootDir: .
     buildCommand: npm run render:build
-    startCommand: npm start
+    startCommand: export PATH="$HOME/.local/bin:$PATH" && npm start
     healthCheckPath: /api/health
     plan: free
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: NODE_VERSION
+        value: "20"
       - key: FLIGHT_PROVIDER
         value: google
       - key: SKYSCANNER_DISABLED

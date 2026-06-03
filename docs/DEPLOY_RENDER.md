@@ -35,6 +35,12 @@ Host the React app separately (e.g. another Render Static Site). Set:
 VITE_API_URL=https://YOUR-SERVICE.onrender.com
 ```
 
+## Build notes
+
+- Repo pins **Node 20** and **Python 3.12.8** (`.node-version`, `.python-version`) so Render does not default to Node 26 / Python 3.14.
+- `render:build` creates `vendor/flights-mcp-server/.venv` with pip (no `uv` required at runtime).
+- First deploy can take several minutes (npm + railways MCP + Python venv).
+
 ## Verify
 
 ```bash
