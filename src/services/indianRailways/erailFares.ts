@@ -8,12 +8,14 @@ export const ERAIL_FARE_CLASS_ORDER = ['1A', '2A', '3A', 'SL', '2S', 'CC', 'FC']
 
 export type ErailFareByClass = Partial<Record<(typeof ERAIL_FARE_CLASS_ORDER)[number] | '3E', number>>;
 
-const FARE_LINE_RE =
-  /^(MAIL_EXPRESS|SUPERFAST|RAJDHANI|RAIL_MOTOR|PASSENGER|EXPRESS|DURONTO|SHATABDI|JANSADHARAN|GARIB|SPECIAL|SUVidha|HUMSAFAR|TEJAS|VANDE|MEMU|DMU|PASS|RAJ|SF)[^:]*:\d+/i;
+/** erail fare blob: `SUPERFAST:1011:...` or `ORDINARY:212:...` (SPL/MEMU/passenger). */
+export function isErailFareLine(part: string): boolean {
+  return /^[A-Z][A-Z0-9_]{2,}:\d+:/.test(part.trim());
+}
 
 export function isErailFareSection(section: string): boolean {
   const parts = section.split('~');
-  return parts.some((p) => FARE_LINE_RE.test(p.trim()));
+  return parts.some((p) => isErailFareLine(p));
 }
 
 /** First non-zero value in a comma-separated quota list = General fare for that class. */
@@ -77,9 +79,12 @@ export function parseErailFareSection(section: string): {
   let trainType: string | undefined;
 
   for (const part of parts) {
-    if (FARE_LINE_RE.test(part)) {
+    if (isErailFareLine(part)) {
       trainType = part.split(':')[0];
-      fareByClass = { ...fareByClass, ...parseErailFareLine(part) };
+      const parsed = parseErailFareLine(part);
+      if (Object.keys(parsed).length > 0) {
+        fareByClass = { ...fareByClass, ...parsed };
+      }
       continue;
     }
     if (part.includes('|') && /[12]?A:|SL:|3A:|2S:|CC:/.test(part)) {

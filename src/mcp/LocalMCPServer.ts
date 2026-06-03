@@ -5,6 +5,7 @@ import { RouteSegment } from '../models/types';
 import { estimateCab } from '../utils/cabEstimation';
 import { mapErailTrain } from '../utils/trainUtils';
 import { indianRailwaysMCP } from './IndianRailwaysMCPClient';
+import { logMappedTrainSegments } from '../utils/trainMcpLog';
 
 const TRAIN_PROVIDER = 'Indian Railways (via MCP)';
 
@@ -71,6 +72,12 @@ export class LocalMCPServer {
           if (date) seg.travelDate = date;
           return seg;
         });
+        logMappedTrainSegments(
+          'search_trains',
+          originIrctc || '?',
+          destIrctc || '?',
+          parsedTrains
+        );
       } else {
         parsedTrains.push({
           id: `train_${Date.now()}_${Math.random()}`,

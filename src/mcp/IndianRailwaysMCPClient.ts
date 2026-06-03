@@ -14,6 +14,7 @@ const MCP_SERVER_PKG = 'indian-railways-mcp';
 const nodeRequire = createRequire(__filename);
 
 import { vendorPath } from '../utils/vendorRoot';
+import { logMcpToolRaw, logTrainSource } from '../utils/trainMcpLog';
 
 const VENDOR_MCP_ENTRY = vendorPath('indian-railways-mcp/build/index.js');
 
@@ -56,7 +57,7 @@ async function mergeErailFaresIntoTrains(
     if (key) byNumber.set(key, trainBase);
   }
 
-  return trains.map((t) => {
+  const merged = trains.map((t) => {
     const rich = byNumber.get(trainNumberKey(t.trainNumber));
     if (!rich?.fareByClass) return t;
     return {
@@ -67,6 +68,8 @@ async function mergeErailFaresIntoTrains(
       erailSeatAvailability: rich.erailSeatAvailability,
     };
   });
+  logTrainSource('erail_merge_fares', fromCode, toCode, isoDate, merged);
+  return merged;
 }
 
 function parseMcpToolJson(text: string): ErailBetweenStationsResult | null {
@@ -129,10 +132,11 @@ export class IndianRailwaysMCPClient {
     const direct = await fetchTrainsBetweenStations(fromCode, toCode, isoDate);
     if (direct.success && Array.isArray(direct.data) && direct.data.length > 0) {
       const trains = direct.data.map((row) => row.trainBase).filter(Boolean);
-      if (trains.some((t) => t.fareByClass && Object.keys(t.fareByClass).length > 0)) {
-        return trains;
-      }
-      if (trains.length > 0) return trains;
+      const hasFares = trains.some((t) => t.fareByClass && Object.keys(t.fareByClass).length > 0);
+      logTrainSource(hasFares ? 'erail_direct' : 'erail_direct_no_fares', fromCode, toCode, isoDate, trains);
+      if (hasFares || trains.length > 0) return trains;
+    } else {
+      logTrainSource('erail_direct_empty', fromCode, toCode, isoDate, []);
     }
 
     await this.connect();
@@ -147,11 +151,13 @@ export class IndianRailwaysMCPClient {
         const text = content?.find((c) => c.type === 'text')?.text;
         if (text) {
           const parsed = parseMcpToolJson(text);
+          logMcpToolRaw('get-trains-on-date', fromCode, toCode, text, parsed);
           if (parsed?.success && Array.isArray(parsed.data)) {
             const rows = parsed.data as Array<{ trainBase?: ErailTrainBase; train_base?: ErailTrainBase }>;
             const trains = rows
               .map((row) => row.trainBase || row.train_base)
               .filter(Boolean) as ErailTrainBase[];
+            logTrainSource('mcp_get-trains-on-date', fromCode, toCode, isoDate, trains);
             if (trains.length > 0) {
               return mergeErailFaresIntoTrains(trains, fromCode, toCode, isoDate);
             }
@@ -173,10 +179,12 @@ export class IndianRailwaysMCPClient {
         const text = content?.find((c) => c.type === 'text')?.text;
         if (text) {
           const parsed = parseMcpToolJson(text);
+          logMcpToolRaw('get-trains-between-stations', fromCode, toCode, text, parsed);
           if (parsed?.success && Array.isArray(parsed.data)) {
             let rows = parsed.data;
             if (isoDate) rows = filterTrainRowsByDate(rows, isoDate);
             const trains = rows.map((row) => row.trainBase).filter(Boolean);
+            logTrainSource('mcp_get-trains-between-stations', fromCode, toCode, isoDate, trains);
             if (trains.length > 0) {
               return mergeErailFaresIntoTrains(trains, fromCode, toCode, isoDate);
             }

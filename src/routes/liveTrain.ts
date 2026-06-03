@@ -4,6 +4,7 @@ import { RouteEngine } from '../engine/RouteEngine';
 import { getGeoNodeById } from '../engine/geoCoords';
 import { RouteSegment } from '../models/types';
 import { AIRPORT_CONNECTION_BUFFER_MINS } from '../utils/trainConnection';
+import { logMappedTrainSegments } from '../utils/trainMcpLog';
 
 export const liveTrainRouter = Router();
 
@@ -39,6 +40,13 @@ liveTrainRouter.post('/', async (req, res) => {
     if (bestTrain.trainOptions) {
       bestTrain.trainOptions = bestTrain.trainOptions.map(enrich);
     }
+
+    logMappedTrainSegments(
+      'live-trains',
+      originNode.irctcCode || originId,
+      destNode.irctcCode || destId,
+      bestTrain.trainOptions || [bestTrain]
+    );
 
     res.json({
       segment: bestTrain,
